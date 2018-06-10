@@ -1,61 +1,81 @@
 package symboltab
 
 import (
+	"runtime"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSymbolTableReverse(t *testing.T) {
-	st, err := OpenSymbolTable("test")
-	assert.NoError(t, err)
-	defer DeleteSymbolTable("test")
+func TestBasic(t *testing.T) {
+	st := New(16)
 
-	hi, err := st.Add("hat")
-	assert.NoError(t, err)
-
-	bi, err := st.Add("bicycle")
-	assert.NoError(t, err)
-
-	assert.Equal(t, "hat", st.Reverse(hi))
-	assert.Equal(t, "bicycle", st.Reverse(bi))
-	assert.Equal(t, "hat", st.Reverse(hi))
-
-}
-
-func BenchmarkAddSymbol(b *testing.B) {
-
-	st, err := OpenSymbolTable("test")
-	assert.NoError(b, err)
-	defer DeleteSymbolTable("test")
-
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		_, err := st.Add(strconv.Itoa(i))
-		assert.NoError(b, err)
-	}
-}
-
-func BenchmarkReverseSymbol_times1000(b *testing.B) {
-
-	st, err := OpenSymbolTable("test")
-	assert.NoError(b, err)
-	defer DeleteSymbolTable("test")
-
-	for i := 0; i < b.N; i++ {
-		_, err := st.Add(strconv.Itoa(i))
-		assert.NoError(b, err)
-	}
-
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for j := 0; j < 1000; j++ {
-		for i := 0; i < b.N; i++ {
-			_ = st.Reverse(int32(i))
+	assertStringToSequence := func(seq int32, existing bool, val string) {
+		t.Helper()
+		seqa, existinga := st.StringToSequence(val, true)
+		assert.Equal(t, existing, existinga)
+		if existinga {
+			assert.Equal(t, seq, seqa)
 		}
+	}
+
+	assertStringToSequence(1, false, "a1")
+	assertStringToSequence(2, false, "a2")
+	assertStringToSequence(3, false, "a3")
+	assertStringToSequence(2, true, "a2")
+	assertStringToSequence(3, true, "a3")
+
+	assert.Equal(t, "a1", st.SequenceToString(1))
+	assert.Equal(t, "a2", st.SequenceToString(2))
+	assert.Equal(t, "a3", st.SequenceToString(3))
+}
+
+func TestAddNew(t *testing.T) {
+	st := New(16)
+	// Won't add entry if asked not to
+	seq, existing := st.StringToSequence("hat", false)
+	assert.False(t, existing)
+	assert.Equal(t, int32(0), seq)
+
+	seq, existing = st.StringToSequence("hat", true)
+	assert.False(t, existing)
+	assert.Equal(t, int32(1), seq)
+
+	// Can find existing entry if not asked to add new
+	seq, existing = st.StringToSequence("hat", false)
+	assert.True(t, existing)
+	assert.Equal(t, int32(1), seq)
+}
+
+func TestLowGC(t *testing.T) {
+	st := New(16)
+	for i := 0; i < 1E7; i++ {
+		st.StringToSequence(strconv.Itoa(i), true)
+	}
+	runtime.GC()
+	start := time.Now()
+	runtime.GC()
+	assert.True(t, time.Since(start) < time.Millisecond*5)
+
+	runtime.KeepAlive(st)
+}
+
+func BenchmarkSymbolTab(b *testing.B) {
+	symbols := make([]string, b.N)
+	for i := range symbols {
+		symbols[i] = strconv.Itoa(i)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	st := New(b.N)
+	for _, sym := range symbols {
+		st.StringToSequence(sym, true)
+	}
+
+	if symbols[0] != st.SequenceToString(1) {
+		b.Errorf("first symbol doesn't match - get %s", st.SequenceToString(1))
 	}
 }
