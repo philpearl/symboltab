@@ -48,15 +48,17 @@ func (i *SymbolTab) Cap() int {
 	return i.table.len()
 }
 
-// SequenceToString looks up a string by its sequence number
+// SequenceToString looks up a string by its sequence number. Obtain the sequence number
+// for a string with StringToSequence
 func (i *SymbolTab) SequenceToString(seq int32) string {
 	// Look up the stringbank offset for this sequence number, then get the string
 	offset := i.ib.lookup(seq)
 	return i.sb.Get(int(offset))
 }
 
-// StringToSequence looks up a string and returns the sequence number for it, converting
-// a string to an integer ID
+// StringToSequence looks up the string val and returns its sequence number seq. If val does
+// not currently exist in the symbol table, it will add it if addNew is true. found indicates
+// whether val was already present in the SymbolTab
 func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq int32, found bool) {
 	// we use a hashtable where the keys are stringbank offsets, but comparisons are done on
 	// strings. There is no value to store
@@ -100,6 +102,9 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq int32, found 
 // place in the table where it was found, plus the stringbank offset of the string + 1
 func (i *SymbolTab) findInTable(table table, val string, hashVal uint32) (cursor int, sequence int32) {
 	l := table.len()
+	if l == 0 {
+		return 0, 0
+	}
 	cursor = int(hashVal) & (l - 1)
 	start := cursor
 	for table.sequence[cursor] != 0 {

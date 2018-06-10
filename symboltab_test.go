@@ -1,6 +1,7 @@
 package symboltab
 
 import (
+	"fmt"
 	"runtime"
 	"strconv"
 	"testing"
@@ -139,4 +140,13 @@ func BenchmarkMiss(b *testing.B) {
 			b.Errorf("found value %s", val)
 		}
 	}
+}
+
+func ExampleSymbolTab() {
+	st := SymbolTab{}
+	seq, found := st.StringToSequence("10293-ahdb-28383-555", true)
+	fmt.Println(found)
+	fmt.Println(st.SequenceToString(seq))
+	// Output: false
+	// 10293-ahdb-28383-555
 }
