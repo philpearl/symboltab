@@ -79,3 +79,64 @@ func BenchmarkSymbolTab(b *testing.B) {
 		b.Errorf("first symbol doesn't match - get %s", st.SequenceToString(1))
 	}
 }
+
+func BenchmarkSequenceToString(b *testing.B) {
+	st := New(b.N)
+	for i := 0; i < b.N; i++ {
+		st.StringToSequence(strconv.Itoa(i), true)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	var str string
+	for i := 1; i <= b.N; i++ {
+		str = st.SequenceToString(int32(i))
+	}
+
+	if str != strconv.Itoa(b.N-1) {
+		b.Errorf("last symbol doesn't match - get %s", str)
+	}
+}
+
+func BenchmarkExisting(b *testing.B) {
+	st := New(b.N)
+	values := make([]string, b.N)
+	for i := range values {
+		values[i] = strconv.Itoa(i)
+	}
+
+	for _, val := range values {
+		st.StringToSequence(val, true)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	var seq int32
+	for _, val := range values {
+		seq, _ = st.StringToSequence(val, false)
+	}
+
+	if st.SequenceToString(seq) != strconv.Itoa(b.N-1) {
+		b.Errorf("last symbol doesn't match - get %s", st.SequenceToString(seq))
+	}
+}
+
+func BenchmarkMiss(b *testing.B) {
+	st := New(b.N)
+	values := make([]string, b.N)
+	for i := range values {
+		values[i] = strconv.Itoa(i)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for _, val := range values {
+		_, found := st.StringToSequence(val, false)
+		if found {
+			b.Errorf("found value %s", val)
+		}
+	}
+}
