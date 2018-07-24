@@ -64,10 +64,13 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq int32, found 
 	// strings. There is no value to store
 	hash := aeshash.Hash(val)
 
-	// If we're resizing currently, then do some resizing work
-	i.resizeWork()
+	// We're going to add to the table, make sure it is big enough
+	i.resize()
 
 	if i.oldTable.len() != 0 {
+		// If we're resizing currently, then do some resizing work
+		i.resizeWork()
+
 		_, sequence := i.findInTable(i.table, val, hash)
 		if sequence != 0 {
 			return sequence, true
@@ -82,9 +85,6 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq int32, found 
 	if !addNew {
 		return 0, false
 	}
-
-	// We're going to add to the table, make sure it is big enough
-	i.resize()
 
 	// String was not found, so we want to store it. Cursor is the index where we should
 	// store it
@@ -187,8 +187,6 @@ func (i *SymbolTab) resize() {
 			hashes:   make([]uint32, len(i.table.hashes)*2),
 			sequence: make([]int32, len(i.table.sequence)*2),
 		}
-
-		i.resizeWork()
 	}
 }
 

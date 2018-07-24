@@ -33,6 +33,27 @@ func TestBasic(t *testing.T) {
 	assert.Equal(t, "a3", st.SequenceToString(3))
 }
 
+func TestGrowth(t *testing.T) {
+	st := New(16)
+
+	for i := 0; i < 10000; i++ {
+		seq, found := st.StringToSequence(strconv.Itoa(i), true)
+		assert.False(t, found)
+		assert.Equal(t, int32(i+1), seq)
+	}
+
+	for i := 0; i < 10000; i++ {
+		seq, found := st.StringToSequence(strconv.Itoa(i), true)
+		assert.True(t, found)
+		assert.Equal(t, int32(i+1), seq)
+	}
+
+	for i := 0; i < 10000; i++ {
+		str := st.SequenceToString(int32(i + 1))
+		assert.Equal(t, strconv.Itoa(i), str)
+	}
+}
+
 func TestAddNew(t *testing.T) {
 	st := New(16)
 	// Won't add entry if asked not to
