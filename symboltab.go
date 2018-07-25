@@ -71,7 +71,7 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq int32, found 
 		// If we're resizing currently, then do some resizing work
 		i.resizeWork()
 
-		_, sequence := i.findInTable(i.table, val, hash)
+		_, sequence := i.findInTable(i.oldTable, val, hash)
 		if sequence != 0 {
 			return sequence, true
 		}

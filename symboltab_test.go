@@ -54,6 +54,20 @@ func TestGrowth(t *testing.T) {
 	}
 }
 
+func TestGrowth2(t *testing.T) {
+	st := New(16)
+
+	for i := 0; i < 10000; i++ {
+		seq, found := st.StringToSequence(strconv.Itoa(i), true)
+		assert.False(t, found)
+		assert.Equal(t, int32(i+1), seq)
+
+		seq, found = st.StringToSequence(strconv.Itoa(i), true)
+		assert.True(t, found)
+		assert.Equal(t, int32(i+1), seq)
+	}
+}
+
 func TestAddNew(t *testing.T) {
 	st := New(16)
 	// Won't add entry if asked not to
