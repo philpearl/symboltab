@@ -53,7 +53,7 @@ func (i *SymbolTab) Cap() int {
 func (i *SymbolTab) SequenceToString(seq int32) string {
 	// Look up the stringbank offset for this sequence number, then get the string
 	offset := i.ib.lookup(seq)
-	return i.sb.Get(int(offset))
+	return i.sb.Get(offset)
 }
 
 // StringToSequence looks up the string val and returns its sequence number seq. If val does
@@ -88,14 +88,15 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq int32, found 
 
 	// String was not found, so we want to store it. Cursor is the index where we should
 	// store it
-	offset := int32(i.sb.Save(val))
 	i.count++
+	sequence = int32(i.count)
 	i.table.hashes[cursor] = hash
-	i.table.sequence[cursor] = int32(i.count)
+	i.table.sequence[cursor] = sequence
 
-	i.ib.save(int32(i.count), offset)
+	offset := i.sb.Save(val)
+	i.ib.save(sequence, offset)
 
-	return int32(i.count), false
+	return sequence, false
 }
 
 // findInTable find the string val in the hash table. If the string is present, it returns the
