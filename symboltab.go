@@ -48,6 +48,12 @@ func (i *SymbolTab) Cap() int {
 	return i.table.len()
 }
 
+// SymbolSize contains the approximate size of string storage in the symboltable. This will be an over-estimate and
+// includes as yet unused and wasted space
+func (i *SymbolTab) SymbolSize() int {
+	return i.sb.Size()
+}
+
 // SequenceToString looks up a string by its sequence number. Obtain the sequence number
 // for a string with StringToSequence
 func (i *SymbolTab) SequenceToString(seq int32) string {

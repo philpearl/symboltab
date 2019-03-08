@@ -22,11 +22,15 @@ func TestBasic(t *testing.T) {
 		}
 	}
 
+	assert.Zero(t, st.SymbolSize())
+
 	assertStringToSequence(1, false, "a1")
 	assertStringToSequence(2, false, "a2")
 	assertStringToSequence(3, false, "a3")
 	assertStringToSequence(2, true, "a2")
 	assertStringToSequence(3, true, "a3")
+
+	assert.Equal(t, 1<<18, st.SymbolSize())
 
 	assert.Equal(t, "a1", st.SequenceToString(1))
 	assert.Equal(t, "a2", st.SequenceToString(2))
