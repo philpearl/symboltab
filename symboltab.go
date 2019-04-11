@@ -12,6 +12,10 @@ import (
 	"github.com/philpearl/stringbank"
 )
 
+// Our space costs are 8 bytes per entry. With a load factor of 0.5 (written as 2 here for reasons) that's
+// increased to at least 16 bytes per entry
+const loadFactor = 2
+
 // SymbolTab is the symbol table. Allocate it via New()
 type SymbolTab struct {
 	sb             stringbank.Stringbank
@@ -25,6 +29,8 @@ type SymbolTab struct {
 // New creates a new SymbolTab. cap is the initial capacity of the table - it will grow
 // automatically when needed
 func New(cap int) *SymbolTab {
+	// want to allocate a table large enough to hold cap without growing
+	cap = cap * loadFactor
 	if cap < 16 {
 		cap = 16
 	} else {
@@ -183,13 +189,15 @@ func (i *SymbolTab) resize() {
 		i.table.sequence = make([]int32, 16)
 	}
 
-	if i.count < i.table.len()*3/4 {
+	if i.count < i.table.len()/loadFactor {
 		// Not full enough to grow the table
 		return
 	}
 
 	if i.oldTable.hashes == nil {
-		// Not already resizing, so kick off the process
+		// Not already resizing, so kick off the process. Note that despite all the work we do to try to be
+		// clever, just allocating these slices can cause a considerable amount of work, presumably because
+		// they are set to zero.
 		i.oldTable, i.table = i.table, table{
 			hashes:   make([]uint32, len(i.table.hashes)*2),
 			sequence: make([]int32, len(i.table.sequence)*2),

@@ -189,3 +189,10 @@ func ExampleSymbolTab() {
 	// Output: false
 	// 10293-ahdb-28383-555
 }
+
+func BenchmarkMakeBigSlice(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		sl := make([]int32, 1e8)
+		runtime.KeepAlive(sl)
+	}
+}
