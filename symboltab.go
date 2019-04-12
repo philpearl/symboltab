@@ -83,6 +83,9 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq int32, found 
 		// If we're resizing currently, then do some resizing work
 		i.resizeWork()
 
+		// The data might still be only in the old table, so look there first. If we find the
+		// data here then we can just go with that answer. But if not it may be in the new table
+		// only. Certainly if we add we want to add to the new table
 		_, sequence := i.findInTable(i.oldTable, val, hash)
 		if sequence != 0 {
 			return sequence, true
