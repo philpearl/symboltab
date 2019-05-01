@@ -39,11 +39,10 @@ func New(cap int) *SymbolTab {
 	} else {
 		cap = 1 << uint(64-bits.LeadingZeros(uint(cap-1)))
 	}
+	var t table
+	t.init(cap)
 	return &SymbolTab{
-		table: table{
-			hashes:   make([]uint32, cap),
-			sequence: make([]int32, cap),
-		},
+		table: t,
 	}
 }
 
@@ -199,8 +198,7 @@ func (i *SymbolTab) resizeWork() {
 func (i *SymbolTab) resize() {
 	if i.table.hashes == nil {
 		// Makes zero value of SymbolTab useful
-		i.table.hashes = makeUint32Slice(16)
-		i.table.sequence = makeInt32Slice(16)
+		i.table.init(16)
 	}
 
 	if i.count < i.table.len()/loadFactor {
@@ -212,10 +210,9 @@ func (i *SymbolTab) resize() {
 		// Not already resizing, so kick off the process. Note that despite all the work we do to try to be
 		// clever, just allocating these slices can cause a considerable amount of work, presumably because
 		// they are set to zero.
-		i.oldTable, i.table = i.table, table{
-			hashes:   makeUint32Slice(len(i.table.hashes)*2),
-			sequence: makeInt32Slice(len(i.table.sequence)*2),
-		}
+		var newTable table
+		newTable.init(i.table.len() * 2)
+		i.oldTable, i.table = i.table, newTable
 	}
 }
 
@@ -240,6 +237,11 @@ type table struct {
 	hashes []uint32
 	// sequence contains the sequence numbers of the entries
 	sequence []int32
+}
+
+func (t *table) init(cap int) {
+	t.hashes = makeUint32Slice(cap)
+	t.sequence = makeInt32Slice(cap)
 }
 
 func (t table) len() int {

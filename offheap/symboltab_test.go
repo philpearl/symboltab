@@ -12,6 +12,7 @@ import (
 
 func TestBasic(t *testing.T) {
 	st := New(16)
+	defer st.Close()
 
 	assertStringToSequence := func(seq int32, existing bool, val string) {
 		t.Helper()
@@ -39,6 +40,7 @@ func TestBasic(t *testing.T) {
 
 func TestGrowth(t *testing.T) {
 	st := New(16)
+	defer st.Close()
 
 	for i := 0; i < 10000; i++ {
 		seq, found := st.StringToSequence(strconv.Itoa(i), true)
@@ -60,6 +62,7 @@ func TestGrowth(t *testing.T) {
 
 func TestGrowth2(t *testing.T) {
 	st := New(16)
+	defer st.Close()
 
 	for i := 0; i < 10000; i++ {
 		seq, found := st.StringToSequence(strconv.Itoa(i), true)
@@ -74,6 +77,7 @@ func TestGrowth2(t *testing.T) {
 
 func TestAddNew(t *testing.T) {
 	st := New(16)
+	defer st.Close()
 	// Won't add entry if asked not to
 	seq, existing := st.StringToSequence("hat", false)
 	assert.False(t, existing)
@@ -91,6 +95,7 @@ func TestAddNew(t *testing.T) {
 
 func TestLowGC(t *testing.T) {
 	st := New(16)
+	defer st.Close()
 	for i := 0; i < 1E7; i++ {
 		st.StringToSequence(strconv.Itoa(i), true)
 	}
@@ -111,6 +116,7 @@ func BenchmarkSymbolTab(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	st := New(b.N)
+	defer st.Close()
 	for _, sym := range symbols {
 		st.StringToSequence(sym, true)
 	}
@@ -122,6 +128,7 @@ func BenchmarkSymbolTab(b *testing.B) {
 
 func BenchmarkSequenceToString(b *testing.B) {
 	st := New(b.N)
+	defer st.Close()
 	for i := 0; i < b.N; i++ {
 		st.StringToSequence(strconv.Itoa(i), true)
 	}
@@ -141,6 +148,7 @@ func BenchmarkSequenceToString(b *testing.B) {
 
 func BenchmarkExisting(b *testing.B) {
 	st := New(b.N)
+	defer st.Close()
 	values := make([]string, b.N)
 	for i := range values {
 		values[i] = strconv.Itoa(i)
@@ -165,6 +173,7 @@ func BenchmarkExisting(b *testing.B) {
 
 func BenchmarkMiss(b *testing.B) {
 	st := New(b.N)
+	defer st.Close()
 	values := make([]string, b.N)
 	for i := range values {
 		values[i] = strconv.Itoa(i)
@@ -183,6 +192,7 @@ func BenchmarkMiss(b *testing.B) {
 
 func ExampleSymbolTab() {
 	st := SymbolTab{}
+	defer st.Close()
 	seq, found := st.StringToSequence("10293-ahdb-28383-555", true)
 	fmt.Println(found)
 	fmt.Println(st.SequenceToString(seq))
