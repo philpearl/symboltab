@@ -133,42 +133,64 @@ func (i *SymbolTab) findInTable(table table, val string, hashVal uint32) (cursor
 	if l == 0 {
 		return 0, 0
 	}
-	cursor = int(hashVal) & (l - 1)
-	start := cursor
-	for table.sequence[cursor] != 0 {
-		if table.hashes[cursor] == hashVal {
-			if seq := table.sequence[cursor]; i.sb.Get(int(i.ib.lookup(seq))) == val {
-				return cursor, seq
+	start := int(hashVal) & (l - 1)
+
+	if len(table.hashes) != len(table.sequence) {
+		panic("tables bad")
+	}
+
+	for cursor, sequence = range table.sequence[start:] {
+		if sequence == 0 {
+			return start + cursor, 0
+		}
+		if table.hashes[start+cursor] == hashVal {
+			if i.sb.Get(int(i.ib.lookup(sequence))) == val {
+				return start + cursor, sequence
 			}
 		}
-		cursor++
-		if cursor == l {
-			cursor = 0
+	}
+
+	for cursor, sequence = range table.sequence[0:start] {
+		if sequence == 0 {
+			return cursor, 0
 		}
-		if cursor == start {
-			panic("out of space!")
+		if table.hashes[cursor] == hashVal {
+			if i.sb.Get(int(i.ib.lookup(sequence))) == val {
+				return cursor, sequence
+			}
 		}
 	}
-	return cursor, 0
+
+	panic("out of space!")
 }
 
-func (i *SymbolTab) copyEntryToTable(table table, hash uint32, seq int32) {
+func (i *SymbolTab) copyEntryToTable(table table, hashVal uint32, seq int32) {
 	l := table.len()
-	cursor := int(hash) & (l - 1)
-	start := cursor
-	for table.sequence[cursor] != 0 {
+	start := int(hashVal) & (l - 1)
+
+	if len(table.hashes) != len(table.sequence) {
+		panic("tables bad")
+	}
+
+	for cursor, sequence := range table.sequence[start:] {
 		// the entry we're copying in is guaranteed not to be already
 		// present, so we're just looking for an empty space
-		cursor++
-		if cursor == l {
-			cursor = 0
-		}
-		if cursor == start {
-			panic("out of space (resize)!")
+		if sequence == 0 {
+			table.hashes[cursor+start] = hashVal
+			table.sequence[cursor+start] = seq
+			return
 		}
 	}
-	table.hashes[cursor] = hash
-	table.sequence[cursor] = seq
+
+	for cursor, sequence := range table.sequence[0:start] {
+		if sequence == 0 {
+			table.hashes[cursor] = hashVal
+			table.sequence[cursor] = seq
+			return
+		}
+	}
+
+	panic("out of space (resize)!")
 }
 
 func (i *SymbolTab) resizeWork() {
