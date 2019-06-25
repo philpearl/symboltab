@@ -7,8 +7,8 @@ package offheap
 
 import (
 	"math/bits"
-	"unsafe"
 	"reflect"
+	"unsafe"
 
 	"github.com/philpearl/aeshash"
 	"github.com/philpearl/mmap"
@@ -52,7 +52,6 @@ func (i *SymbolTab) Close() {
 	i.table.close()
 	i.oldTable.close()
 	i.ib.close()
-
 }
 
 // Len returns the number of unique strings stored
@@ -227,7 +226,6 @@ func makeInt32Slice(size int) []int32 {
 	slice.Len = size
 	return *(*[]int32)(unsafe.Pointer(&slice))
 }
-
 
 // table represents a hash table. We keep the strings and hashes separate in
 // case we want to use different size types in the future
