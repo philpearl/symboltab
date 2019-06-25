@@ -51,6 +51,8 @@ func (i *SymbolTab) Close() {
 	i.sb.Close()
 	i.table.close()
 	i.oldTable.close()
+	i.oldTableCursor = 0
+	i.count = 0
 	i.ib.close()
 }
 
@@ -136,7 +138,7 @@ func (i *SymbolTab) findInTable(table table, val string, hashVal uint32) (cursor
 	for table.sequence[cursor] != 0 {
 		if table.hashes[cursor] == hashVal {
 			if seq := table.sequence[cursor]; i.sb.Get(int(i.ib.lookup(seq))) == val {
-				return cursor, table.sequence[cursor]
+				return cursor, seq
 			}
 		}
 		cursor++
@@ -177,10 +179,11 @@ func (i *SymbolTab) resizeWork() {
 	if l == 0 {
 		return
 	}
-	for k := 0; k < 16; k++ {
-		offset := k + i.oldTableCursor
-		if seq := i.oldTable.sequence[offset]; seq != 0 {
-			i.copyEntryToTable(i.table, i.oldTable.hashes[offset], i.oldTable.sequence[offset])
+	// original size is 16, and we double to create new tables, so size should always be a multiple of 16
+	for k, seq := range i.oldTable.sequence[i.oldTableCursor : i.oldTableCursor+16] {
+		if seq != 0 {
+			offset := k + i.oldTableCursor
+			i.copyEntryToTable(i.table, i.oldTable.hashes[offset], seq)
 			// The entry can exist in the old and new versions of the table without
 			// problems. If we did try to delete from the old table we'd have issues
 			// searching forward from clashing entries.
