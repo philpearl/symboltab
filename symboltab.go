@@ -76,12 +76,16 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq int32, found 
 	// strings. There is no value to store
 	hash := aeshash.Hash(val)
 
-	// We're going to add to the table, make sure it is big enough
-	i.resize()
+	if addNew {
+		// We're going to add to the table, make sure it is big enough
+		i.resize()
+	}
 
 	if i.oldTable.len() != 0 {
-		// If we're resizing currently, then do some resizing work
-		i.resizeWork()
+		if addNew {
+			// If we're resizing currently, then do some resizing work
+			i.resizeWork()
+		}
 
 		// The data might still be only in the old table, so look there first. If we find the
 		// data here then we can just go with that answer. But if not it may be in the new table
