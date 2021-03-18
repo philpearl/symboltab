@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/philpearl/aeshash"
 	"github.com/philpearl/mmap"
 	stringbank "github.com/philpearl/stringbank/offheap"
 )
@@ -80,13 +79,24 @@ func (i *SymbolTab) SequenceToString(seq int32) string {
 	return i.sb.Get(offset)
 }
 
+// We use the runtime's map hash function without the overhead of using
+// hash/maphash
+//go:linkname runtime_memhash runtime.memhash
+//go:noescape
+func runtime_memhash(p unsafe.Pointer, seed, s uintptr) uintptr
+
 // StringToSequence looks up the string val and returns its sequence number seq. If val does
 // not currently exist in the symbol table, it will add it if addNew is true. found indicates
 // whether val was already present in the SymbolTab
 func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq int32, found bool) {
 	// we use a hashtable where the keys are stringbank offsets, but comparisons are done on
 	// strings. There is no value to store
-	hash := aeshash.Hash(val)
+
+	hash := uint32(runtime_memhash(
+		unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&val)).Data),
+		0,
+		uintptr(len(val)),
+	))
 
 	if addNew {
 		// We're going to add to the table, make sure it is big enough
