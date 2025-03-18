@@ -7,7 +7,7 @@ import (
 	"github.com/philpearl/mmap"
 )
 
-const intbanksize = 1 << 9
+const intbanksize = 1 << 12
 
 type intbank struct {
 	slabs [][]int
