@@ -20,7 +20,7 @@ func (ib *intbank) close() {
 	ib.slabs = nil
 }
 
-func (ib *intbank) save(sequence int32, offset int) {
+func (ib *intbank) save(sequence uint32, offset int) {
 	sequence-- // externally sequence starts at 1
 	slabNo := int(sequence / intbanksize)
 	slabOffset := int(sequence % intbanksize)
@@ -34,7 +34,7 @@ func (ib *intbank) save(sequence int32, offset int) {
 	ib.slabs[slabNo][slabOffset] = offset
 }
 
-func (ib *intbank) lookup(sequence int32) int {
+func (ib *intbank) lookup(sequence uint32) int {
 	sequence-- // externally, sequence starts at 1
 	slabNo := int(sequence / intbanksize)
 	slabOffset := int(sequence % intbanksize)

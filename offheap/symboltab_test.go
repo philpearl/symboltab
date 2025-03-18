@@ -14,7 +14,7 @@ func TestBasic(t *testing.T) {
 	st := New(16)
 	defer st.Close()
 
-	assertStringToSequence := func(seq int32, existing bool, val string) {
+	assertStringToSequence := func(seq uint32, existing bool, val string) {
 		t.Helper()
 		seqa, existinga := st.StringToSequence(val, true)
 		assert.Equal(t, existing, existinga)
@@ -42,20 +42,20 @@ func TestGrowth(t *testing.T) {
 	st := New(16)
 	defer st.Close()
 
-	for i := 0; i < 10000; i++ {
+	for i := range 10000 {
 		seq, found := st.StringToSequence(strconv.Itoa(i), true)
 		assert.False(t, found)
-		assert.Equal(t, int32(i+1), seq)
+		assert.Equal(t, uint32(i+1), seq)
 	}
 
-	for i := 0; i < 10000; i++ {
+	for i := range 10000 {
 		seq, found := st.StringToSequence(strconv.Itoa(i), true)
 		assert.True(t, found)
-		assert.Equal(t, int32(i+1), seq)
+		assert.Equal(t, uint32(i+1), seq)
 	}
 
-	for i := 0; i < 10000; i++ {
-		str := st.SequenceToString(int32(i + 1))
+	for i := range 10000 {
+		str := st.SequenceToString(uint32(i + 1))
 		assert.Equal(t, strconv.Itoa(i), str)
 	}
 }
@@ -64,14 +64,14 @@ func TestGrowth2(t *testing.T) {
 	st := New(16)
 	defer st.Close()
 
-	for i := 0; i < 10000; i++ {
+	for i := range 10000 {
 		seq, found := st.StringToSequence(strconv.Itoa(i), true)
 		assert.False(t, found)
-		assert.Equal(t, int32(i+1), seq)
+		assert.Equal(t, uint32(i+1), seq)
 
 		seq, found = st.StringToSequence(strconv.Itoa(i), true)
 		assert.True(t, found)
-		assert.Equal(t, int32(i+1), seq)
+		assert.Equal(t, uint32(i+1), seq)
 	}
 }
 
@@ -81,22 +81,22 @@ func TestAddNew(t *testing.T) {
 	// Won't add entry if asked not to
 	seq, existing := st.StringToSequence("hat", false)
 	assert.False(t, existing)
-	assert.Equal(t, int32(0), seq)
+	assert.Equal(t, uint32(0), seq)
 
 	seq, existing = st.StringToSequence("hat", true)
 	assert.False(t, existing)
-	assert.Equal(t, int32(1), seq)
+	assert.Equal(t, uint32(1), seq)
 
 	// Can find existing entry if not asked to add new
 	seq, existing = st.StringToSequence("hat", false)
 	assert.True(t, existing)
-	assert.Equal(t, int32(1), seq)
+	assert.Equal(t, uint32(1), seq)
 }
 
 func TestLowGC(t *testing.T) {
 	st := New(16)
 	defer st.Close()
-	for i := 0; i < 1E7; i++ {
+	for i := 0; i < 1e7; i++ {
 		st.StringToSequence(strconv.Itoa(i), true)
 	}
 	runtime.GC()
@@ -138,7 +138,7 @@ func BenchmarkSequenceToString(b *testing.B) {
 
 	var str string
 	for i := 1; i <= b.N; i++ {
-		str = st.SequenceToString(int32(i))
+		str = st.SequenceToString(uint32(i))
 	}
 
 	if str != strconv.Itoa(b.N-1) {
@@ -161,7 +161,7 @@ func BenchmarkExisting(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	var seq int32
+	var seq uint32
 	for _, val := range values {
 		seq, _ = st.StringToSequence(val, false)
 	}

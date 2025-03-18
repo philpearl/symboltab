@@ -40,7 +40,7 @@ func New(cap int) *SymbolTab {
 	return &SymbolTab{
 		table: table{
 			hashes:   make([]uint32, cap),
-			sequence: make([]int32, cap),
+			sequence: make([]uint32, cap),
 		},
 	}
 }
@@ -63,7 +63,7 @@ func (i *SymbolTab) SymbolSize() int {
 
 // SequenceToString looks up a string by its sequence number. Obtain the sequence number
 // for a string with StringToSequence
-func (i *SymbolTab) SequenceToString(seq int32) string {
+func (i *SymbolTab) SequenceToString(seq uint32) string {
 	// Look up the stringbank offset for this sequence number, then get the string
 	offset := i.ib.lookup(seq)
 	return i.sb.Get(offset)
@@ -71,6 +71,7 @@ func (i *SymbolTab) SequenceToString(seq int32) string {
 
 // We use the runtime's map hash function without the overhead of using
 // hash/maphash
+//
 //go:linkname runtime_memhash runtime.memhash
 //go:noescape
 func runtime_memhash(p unsafe.Pointer, seed, s uintptr) uintptr
@@ -78,7 +79,7 @@ func runtime_memhash(p unsafe.Pointer, seed, s uintptr) uintptr
 // StringToSequence looks up the string val and returns its sequence number seq. If val does
 // not currently exist in the symbol table, it will add it if addNew is true. found indicates
 // whether val was already present in the SymbolTab
-func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq int32, found bool) {
+func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq uint32, found bool) {
 	// we use a hashtable where the keys are stringbank offsets, but comparisons are done on
 	// strings. There is no value to store
 
@@ -120,7 +121,7 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq int32, found 
 	// String was not found, so we want to store it. Cursor is the index where we should
 	// store it
 	i.count++
-	sequence = int32(i.count)
+	sequence = uint32(i.count)
 	i.table.hashes[cursor] = hash
 	i.table.sequence[cursor] = sequence
 
@@ -132,7 +133,7 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq int32, found 
 
 // findInTable find the string val in the hash table. If the string is present, it returns the
 // place in the table where it was found, plus the stringbank offset of the string + 1
-func (i *SymbolTab) findInTable(table table, val string, hashVal uint32) (cursor int, sequence int32) {
+func (i *SymbolTab) findInTable(table table, val string, hashVal uint32) (cursor int, sequence uint32) {
 	l := table.len()
 	if l == 0 {
 		return 0, 0
@@ -156,7 +157,7 @@ func (i *SymbolTab) findInTable(table table, val string, hashVal uint32) (cursor
 	return cursor, 0
 }
 
-func (i *SymbolTab) copyEntryToTable(table table, hash uint32, seq int32) {
+func (i *SymbolTab) copyEntryToTable(table table, hash uint32, seq uint32) {
 	l := table.len()
 	cursor := int(hash) & (l - 1)
 	start := cursor
@@ -205,7 +206,7 @@ func (i *SymbolTab) resize() {
 	if i.table.hashes == nil {
 		// Makes zero value of SymbolTab useful
 		i.table.hashes = make([]uint32, 16)
-		i.table.sequence = make([]int32, 16)
+		i.table.sequence = make([]uint32, 16)
 	}
 
 	if i.count < i.table.len()/loadFactor {
@@ -219,7 +220,7 @@ func (i *SymbolTab) resize() {
 		// they are set to zero.
 		i.oldTable, i.table = i.table, table{
 			hashes:   make([]uint32, len(i.table.hashes)*2),
-			sequence: make([]int32, len(i.table.sequence)*2),
+			sequence: make([]uint32, len(i.table.sequence)*2),
 		}
 	}
 }
@@ -231,7 +232,7 @@ type table struct {
 	// entries that have different hashes but hit the same bucket
 	hashes []uint32
 	// sequence contains the sequence numbers of the entries
-	sequence []int32
+	sequence []uint32
 }
 
 func (t table) len() int {
