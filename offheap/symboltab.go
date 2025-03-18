@@ -6,6 +6,7 @@
 package offheap
 
 import (
+	"math"
 	"math/bits"
 	"reflect"
 	"unsafe"
@@ -222,6 +223,16 @@ func (i *SymbolTab) resize() {
 
 	if i.count < i.table.len()/loadFactor {
 		// Not full enough to grow the table
+		return
+	}
+
+	if i.table.len() >= math.MaxUint32 {
+		// We can't grow the table any more. We can let the table get fuller
+		if i.count >= math.MaxUint32*3/4 {
+			// Things will probably go wrong if we get this full. We have no
+			// bits left to grow the table. This is the end.
+			panic("out of space in symboltab!")
+		}
 		return
 	}
 
