@@ -8,7 +8,6 @@ package offheap
 import (
 	"math"
 	"math/bits"
-	"reflect"
 	"unsafe"
 
 	"github.com/philpearl/mmap"
@@ -95,7 +94,7 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq uint32, found
 	// strings. There is no value to store
 
 	hash := uint32(runtime_memhash(
-		unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&val)).Data),
+		unsafe.Pointer(unsafe.StringData(val)),
 		0,
 		uintptr(len(val)),
 	))
@@ -246,10 +245,9 @@ func (i *SymbolTab) resize() {
 	}
 }
 
-func makeUint32Slice(size int) []uint32 {
-	slice, _ := mmap.Alloc(unsafe.Sizeof(uint32(0)), size)
-	slice.Len = size
-	return *(*[]uint32)(unsafe.Pointer(&slice))
+func makeUint32Slice(size int) (slice []uint32) {
+	slice, _ = mmap.Alloc[uint32](size)
+	return slice
 }
 
 // table represents a hash table. We keep the strings and hashes separate in
@@ -273,11 +271,11 @@ func (t table) len() int {
 
 func (t *table) close() {
 	if t.hashes != nil {
-		mmap.Free(*(*reflect.SliceHeader)(unsafe.Pointer(&t.hashes)), unsafe.Sizeof(uint32(0)))
+		mmap.Free(t.hashes)
 		t.hashes = nil
 	}
 	if t.sequence != nil {
-		mmap.Free(*(*reflect.SliceHeader)(unsafe.Pointer(&t.sequence)), unsafe.Sizeof(int32(0)))
+		mmap.Free(t.sequence)
 		t.sequence = nil
 	}
 }

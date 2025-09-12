@@ -96,7 +96,7 @@ func TestAddNew(t *testing.T) {
 func TestLowGC(t *testing.T) {
 	st := New(16)
 	defer st.Close()
-	for i := 0; i < 1e7; i++ {
+	for i := range 10000000 {
 		st.StringToSequence(strconv.Itoa(i), true)
 	}
 	runtime.GC()
@@ -127,9 +127,11 @@ func BenchmarkSymbolTab(b *testing.B) {
 }
 
 func BenchmarkSequenceToString(b *testing.B) {
+	// This benchmark can run very very slowly as the setup is slow, but the
+	// execution phase is fast. b.N gets driven very large!
 	st := New(b.N)
 	defer st.Close()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		st.StringToSequence(strconv.Itoa(i), true)
 	}
 
@@ -137,8 +139,8 @@ func BenchmarkSequenceToString(b *testing.B) {
 	b.ResetTimer()
 
 	var str string
-	for i := 1; i <= b.N; i++ {
-		str = st.SequenceToString(uint32(i))
+	for i := range b.N {
+		str = st.SequenceToString(uint32(i + 1))
 	}
 
 	if str != strconv.Itoa(b.N-1) {
@@ -201,7 +203,8 @@ func ExampleSymbolTab() {
 }
 
 func BenchmarkMakeBigSlice(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	b.ReportAllocs()
+	for b.Loop() {
 		sl := make([]int32, 1e8)
 		runtime.KeepAlive(sl)
 	}

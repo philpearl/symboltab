@@ -1,9 +1,6 @@
 package offheap
 
 import (
-	"reflect"
-	"unsafe"
-
 	"github.com/philpearl/mmap"
 )
 
@@ -15,7 +12,7 @@ type intbank struct {
 
 func (ib *intbank) close() {
 	for _, s := range ib.slabs {
-		mmap.Free(*(*reflect.SliceHeader)(unsafe.Pointer(&s)), unsafe.Sizeof(int(0)))
+		mmap.Free(s)
 	}
 	ib.slabs = nil
 }
@@ -26,9 +23,8 @@ func (ib *intbank) save(sequence uint32, offset int) {
 	slabOffset := int(sequence % intbanksize)
 
 	for len(ib.slabs) <= slabNo {
-		ns, _ := mmap.Alloc(unsafe.Sizeof(int(0)), intbanksize)
-		ns.Len = intbanksize
-		ib.slabs = append(ib.slabs, *(*[]int)(unsafe.Pointer(&ns)))
+		ns, _ := mmap.Alloc[int](intbanksize)
+		ib.slabs = append(ib.slabs, ns)
 	}
 
 	ib.slabs[slabNo][slabOffset] = offset

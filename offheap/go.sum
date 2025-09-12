@@ -3,8 +3,14 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/philpearl/mmap v0.0.0-20190501094812-b5dc52c98503 h1:MraCkgNEk6PSuBL+nyseA2LvOo+mcsYpAhEcixj7t7I=
 github.com/philpearl/mmap v0.0.0-20190501094812-b5dc52c98503/go.mod h1:U3YvJkR3bBTvF9794kZHNUbyHCMxErFJMvNhBBhqPMU=
+github.com/philpearl/mmap v0.0.1 h1:vPBpjN92UQNvDGAnovW79HS4OI9XR7TYp6XkkzJ7skg=
+github.com/philpearl/mmap v0.0.1/go.mod h1:QrP2HYBITgRn17ew4iLlkxpqwC0+anpv8FgqPAfDWQE=
 github.com/philpearl/stringbank/offheap v1.0.1 h1:TGNpfzszLkMecT3UEReaRg0ymXqjxj+7rQIB+QSCdQY=
 github.com/philpearl/stringbank/offheap v1.0.1/go.mod h1:JQruHVjqo7N44kjvueRPOFtxCfp68Bnq8Vw3eSBi1UY=
+github.com/philpearl/stringbank/offheap v1.0.2 h1:47KztAcDEKup+FeHNnPSylF0gpyuJGgdHzLIVKY+hFM=
+github.com/philpearl/stringbank/offheap v1.0.2/go.mod h1:JQruHVjqo7N44kjvueRPOFtxCfp68Bnq8Vw3eSBi1UY=
+github.com/philpearl/stringbank/offheap v1.0.3 h1:9NT/eUJRfdaDevHiyjZ9W4a747WcF0B85vCNNiQ8Ads=
+github.com/philpearl/stringbank/offheap v1.0.3/go.mod h1:OnP8kk6PjZqZszWom4TdO/f5gXNwzMaJ9D+h79ixPqA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
