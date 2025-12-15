@@ -39,8 +39,7 @@ func New(cap int) *SymbolTab {
 	}
 	return &SymbolTab{
 		table: table{
-			hashes:   make([]uint32, cap),
-			sequence: make([]uint32, cap),
+			entries: make([]tableEntry, cap),
 		},
 	}
 }
@@ -122,8 +121,10 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq uint32, found
 	// store it
 	i.count++
 	sequence = uint32(i.count)
-	i.table.hashes[cursor] = hash
-	i.table.sequence[cursor] = sequence
+	i.table.entries[cursor] = tableEntry{
+		hash:     hash,
+		sequence: sequence,
+	}
 
 	offset := i.sb.Save(val)
 	i.ib.save(sequence, offset)
@@ -140,10 +141,10 @@ func (i *SymbolTab) findInTable(table table, val string, hashVal uint32) (cursor
 	}
 	cursor = int(hashVal) & (l - 1)
 	start := cursor
-	for table.sequence[cursor] != 0 {
-		if table.hashes[cursor] == hashVal {
-			if seq := table.sequence[cursor]; i.sb.Get(int(i.ib.lookup(seq))) == val {
-				return cursor, table.sequence[cursor]
+	for table.entries[cursor].sequence != 0 {
+		if table.entries[cursor].hash == hashVal {
+			if seq := table.entries[cursor].sequence; i.sb.Get(int(i.ib.lookup(seq))) == val {
+				return cursor, table.entries[cursor].sequence
 			}
 		}
 		cursor++
@@ -161,7 +162,7 @@ func (i *SymbolTab) copyEntryToTable(table table, hash uint32, seq uint32) {
 	l := table.len()
 	cursor := int(hash) & (l - 1)
 	start := cursor
-	for table.sequence[cursor] != 0 {
+	for table.entries[cursor].sequence != 0 {
 		// the entry we're copying in is guaranteed not to be already
 		// present, so we're just looking for an empty space
 		cursor++
@@ -172,8 +173,10 @@ func (i *SymbolTab) copyEntryToTable(table table, hash uint32, seq uint32) {
 			panic("out of space (resize)!")
 		}
 	}
-	table.hashes[cursor] = hash
-	table.sequence[cursor] = seq
+	table.entries[cursor] = tableEntry{
+		hash:     hash,
+		sequence: seq,
+	}
 }
 
 func (i *SymbolTab) resizeWork() {
@@ -186,8 +189,8 @@ func (i *SymbolTab) resizeWork() {
 	}
 	for k := 0; k < 16; k++ {
 		offset := k + i.oldTableCursor
-		if seq := i.oldTable.sequence[offset]; seq != 0 {
-			i.copyEntryToTable(i.table, i.oldTable.hashes[offset], i.oldTable.sequence[offset])
+		if seq := i.oldTable.entries[offset]; seq.sequence != 0 {
+			i.copyEntryToTable(i.table, i.oldTable.entries[offset].hash, i.oldTable.entries[offset].sequence)
 			// The entry can exist in the old and new versions of the table without
 			// problems. If we did try to delete from the old table we'd have issues
 			// searching forward from clashing entries.
@@ -196,17 +199,15 @@ func (i *SymbolTab) resizeWork() {
 	i.oldTableCursor += 16
 	if i.oldTableCursor >= l {
 		// resizing is complete - clear out the old table
-		i.oldTable.hashes = nil
-		i.oldTable.sequence = nil
+		i.oldTable.entries = nil
 		i.oldTableCursor = 0
 	}
 }
 
 func (i *SymbolTab) resize() {
-	if i.table.hashes == nil {
+	if i.table.entries == nil {
 		// Makes zero value of SymbolTab useful
-		i.table.hashes = make([]uint32, 16)
-		i.table.sequence = make([]uint32, 16)
+		i.table.entries = make([]tableEntry, 16)
 	}
 
 	if i.count < i.table.len()/loadFactor {
@@ -214,13 +215,12 @@ func (i *SymbolTab) resize() {
 		return
 	}
 
-	if i.oldTable.hashes == nil {
+	if i.oldTable.entries == nil {
 		// Not already resizing, so kick off the process. Note that despite all the work we do to try to be
 		// clever, just allocating these slices can cause a considerable amount of work, presumably because
 		// they are set to zero.
 		i.oldTable, i.table = i.table, table{
-			hashes:   make([]uint32, len(i.table.hashes)*2),
-			sequence: make([]uint32, len(i.table.sequence)*2),
+			entries: make([]tableEntry, len(i.table.entries)*2),
 		}
 	}
 }
@@ -228,13 +228,20 @@ func (i *SymbolTab) resize() {
 // table represents a hash table. We keep the strings and hashes separate in
 // case we want to use different size types in the future
 type table struct {
-	// We keep hashes in the table to speed up resizing, and also stepping through
-	// entries that have different hashes but hit the same bucket
-	hashes []uint32
-	// sequence contains the sequence numbers of the entries
-	sequence []uint32
+	// We keep hashes in the table to speed up resizing, and also stepping
+	// through entries that have different hashes but hit the same bucket.
+	//
+	// Having entries with both the key and value together appears to speed up
+	// the table when it's very large. I'd guess if the "value" of the table
+	// (the sequence number) was larger this might not be the case.
+	entries []tableEntry
+}
+
+type tableEntry struct {
+	hash     uint32
+	sequence uint32
 }
 
 func (t table) len() int {
-	return len(t.hashes)
+	return len(t.entries)
 }
