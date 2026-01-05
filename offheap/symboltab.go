@@ -152,7 +152,7 @@ func (i *SymbolTab) findInTable(table table, val string, hashVal uint32) (cursor
 	if l == 0 {
 		return 0, 0
 	}
-	cursor = int(hashVal) % l
+	cursor = int(hashVal) & (l - 1)
 	start := cursor
 	for table.entries[cursor].sequence != 0 {
 		if table.entries[cursor].hash == hashVal {
@@ -161,7 +161,7 @@ func (i *SymbolTab) findInTable(table table, val string, hashVal uint32) (cursor
 			}
 		}
 		cursor++
-		cursor = cursor % l
+		cursor = cursor & (l - 1)
 		if cursor == start {
 			panic("out of space!")
 		}
@@ -171,13 +171,13 @@ func (i *SymbolTab) findInTable(table table, val string, hashVal uint32) (cursor
 
 func (i *SymbolTab) copyEntryToTable(table table, hash uint32, seq uint32) {
 	l := table.len()
-	cursor := int(hash) % l
+	cursor := int(hash) & (l - 1)
 	start := cursor
 	for table.entries[cursor].sequence != 0 {
 		// the entry we're copying in is guaranteed not to be already
 		// present, so we're just looking for an empty space
 		cursor++
-		cursor = cursor % l
+		cursor = cursor & (l - 1)
 		if cursor == start {
 			panic("out of space (resize)!")
 		}

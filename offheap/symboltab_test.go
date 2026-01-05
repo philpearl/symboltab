@@ -115,7 +115,7 @@ func BenchmarkSymbolTab(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	st := New(b.N)
+	st := New(16)
 	defer st.Close()
 	for _, sym := range symbols {
 		st.StringToSequence(sym, true)
@@ -126,25 +126,47 @@ func BenchmarkSymbolTab(b *testing.B) {
 	}
 }
 
+func BenchmarkSymbolTabSmall(b *testing.B) {
+	for _, len := range []int{10_000, 100_000, 1_000_000, 10_000_000, 100_000_000} {
+		b.Run(strconv.Itoa(len), func(b *testing.B) {
+			symbols := make([]string, len)
+			for i := range symbols {
+				symbols[i] = strconv.Itoa(i)
+			}
+
+			b.ReportAllocs()
+			b.ResetTimer()
+
+			for b.Loop() {
+				st := New(16)
+				for _, sym := range symbols {
+					st.StringToSequence(sym, true)
+				}
+				st.Close()
+			}
+		})
+	}
+}
+
 func BenchmarkSequenceToString(b *testing.B) {
-	// This benchmark can run very very slowly as the setup is slow, but the
-	// execution phase is fast. b.N gets driven very large!
-	st := New(b.N)
+	st := New(16)
 	defer st.Close()
-	for i := range b.N {
+	for i := range 100_000 {
 		st.StringToSequence(strconv.Itoa(i), true)
 	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	var str string
-	for i := range b.N {
-		str = st.SequenceToString(uint32(i + 1))
-	}
+	for b.Loop() {
+		var str string
+		for i := range 100_000 {
+			str = st.SequenceToString(uint32(i + 1))
+		}
 
-	if str != strconv.Itoa(b.N-1) {
-		b.Errorf("last symbol doesn't match - get %s", str)
+		if str != strconv.Itoa(100_000-1) {
+			b.Errorf("last symbol doesn't match - get %s", str)
+		}
 	}
 }
 
@@ -176,9 +198,15 @@ func BenchmarkExisting(b *testing.B) {
 func BenchmarkMiss(b *testing.B) {
 	st := New(b.N)
 	defer st.Close()
+
+	// We want some entries in the table to make misses a bit more realistic.
+	for i := range 10_000 {
+		st.StringToSequence(strconv.Itoa(i), true)
+	}
+
 	values := make([]string, b.N)
 	for i := range values {
-		values[i] = strconv.Itoa(i)
+		values[i] = strconv.Itoa(i + 10_000)
 	}
 
 	b.ReportAllocs()
