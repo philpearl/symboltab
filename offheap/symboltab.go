@@ -169,9 +169,9 @@ func (i *SymbolTab) findInTable(table table, val string, hashVal uint32) (cursor
 	return cursor, 0
 }
 
-func (i *SymbolTab) copyEntryToTable(table table, hash uint32, seq uint32) {
+func (i *SymbolTab) copyEntryToTable(table table, entry tableEntry) {
 	l := table.len()
-	cursor := int(hash) & (l - 1)
+	cursor := int(entry.hash) & (l - 1)
 	start := cursor
 	for table.entries[cursor].sequence != 0 {
 		// the entry we're copying in is guaranteed not to be already
@@ -182,10 +182,7 @@ func (i *SymbolTab) copyEntryToTable(table table, hash uint32, seq uint32) {
 			panic("out of space (resize)!")
 		}
 	}
-	table.entries[cursor] = tableEntry{
-		hash:     hash,
-		sequence: seq,
-	}
+	table.entries[cursor] = entry
 }
 
 func (i *SymbolTab) resizeWork() {
@@ -197,10 +194,9 @@ func (i *SymbolTab) resizeWork() {
 		return
 	}
 	// original size is 16, and we double to create new tables, so size should always be a multiple of 16
-	for k, entry := range i.oldTable.entries[i.oldTableCursor : i.oldTableCursor+16] {
+	for _, entry := range i.oldTable.entries[i.oldTableCursor : i.oldTableCursor+16] {
 		if entry.sequence != 0 {
-			offset := k + i.oldTableCursor
-			i.copyEntryToTable(i.table, i.oldTable.entries[offset].hash, entry.sequence)
+			i.copyEntryToTable(i.table, entry)
 			// The entry can exist in the old and new versions of the table without
 			// problems. If we did try to delete from the old table we'd have issues
 			// searching forward from clashing entries.

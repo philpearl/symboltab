@@ -144,6 +144,7 @@ func BenchmarkSymbolTabSmall(b *testing.B) {
 				}
 				st.Close()
 			}
+			b.ReportMetric(float64(b.Elapsed())/float64(len)/float64(b.N), "ns/op")
 		})
 	}
 }
