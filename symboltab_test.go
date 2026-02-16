@@ -37,6 +37,24 @@ func TestBasic(t *testing.T) {
 	assert.Equal(t, "a3", st.SequenceToString(3))
 }
 
+func TestInsertString(t *testing.T) {
+	st := New(16)
+
+	for i := range 10000 {
+		seq := st.InsertString(strconv.Itoa(i))
+		if seq != uint32(i+1) {
+			t.Errorf("expected sequence %d, got %d", i+1, seq)
+		}
+	}
+
+	for i := range 10000 {
+		str := st.SequenceToString(uint32(i + 1))
+		if str != strconv.Itoa(i) {
+			t.Errorf("expected string %s, got %s", strconv.Itoa(i), str)
+		}
+	}
+}
+
 func TestGrowth(t *testing.T) {
 	st := New(16)
 

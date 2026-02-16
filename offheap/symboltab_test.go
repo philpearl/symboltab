@@ -38,6 +38,25 @@ func TestBasic(t *testing.T) {
 	assert.Equal(t, "a3", st.SequenceToString(3))
 }
 
+func TestInsertString(t *testing.T) {
+	st := New(16)
+	defer st.Close()
+
+	for i := range 10000 {
+		seq := st.InsertString(strconv.Itoa(i))
+		if seq != uint32(i+1) {
+			t.Errorf("expected sequence %d, got %d", i+1, seq)
+		}
+	}
+
+	for i := range 10000 {
+		str := st.SequenceToString(uint32(i + 1))
+		if str != strconv.Itoa(i) {
+			t.Errorf("expected string %s, got %s", strconv.Itoa(i), str)
+		}
+	}
+}
+
 func TestGrowth(t *testing.T) {
 	st := New(16)
 	defer st.Close()
@@ -126,6 +145,25 @@ func BenchmarkSymbolTab(b *testing.B) {
 	}
 }
 
+func BenchmarkSymbolTabInsert(b *testing.B) {
+	symbols := make([]string, b.N)
+	for i := range symbols {
+		symbols[i] = strconv.Itoa(i)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	st := New(16)
+	defer st.Close()
+	for _, sym := range symbols {
+		st.InsertString(sym)
+	}
+
+	if symbols[0] != st.SequenceToString(1) {
+		b.Errorf("first symbol doesn't match - get %s", st.SequenceToString(1))
+	}
+}
+
 func BenchmarkSymbolTabSmall(b *testing.B) {
 	for _, len := range []int{10_000, 100_000, 1_000_000, 10_000_000, 100_000_000} {
 		b.Run(strconv.Itoa(len), func(b *testing.B) {
@@ -141,6 +179,29 @@ func BenchmarkSymbolTabSmall(b *testing.B) {
 				st := New(16)
 				for _, sym := range symbols {
 					st.StringToSequence(sym, true)
+				}
+				st.Close()
+			}
+			b.ReportMetric(float64(b.Elapsed())/float64(len)/float64(b.N), "ns/op")
+		})
+	}
+}
+
+func BenchmarkSymbolTabSmallInsert(b *testing.B) {
+	for _, len := range []int{10_000, 100_000, 1_000_000, 10_000_000, 100_000_000} {
+		b.Run(strconv.Itoa(len), func(b *testing.B) {
+			symbols := make([]string, len)
+			for i := range symbols {
+				symbols[i] = strconv.Itoa(i)
+			}
+
+			b.ReportAllocs()
+			b.ResetTimer()
+
+			for b.Loop() {
+				st := New(16)
+				for _, sym := range symbols {
+					st.InsertString(sym)
 				}
 				st.Close()
 			}
@@ -188,7 +249,7 @@ func BenchmarkExisting(b *testing.B) {
 
 	var seq uint32
 	for _, val := range values {
-		seq, _ = st.StringToSequence(val, false)
+		seq, _ = st.StringToSequence(val, true)
 	}
 
 	if st.SequenceToString(seq) != strconv.Itoa(b.N-1) {
@@ -229,12 +290,4 @@ func ExampleSymbolTab() {
 	fmt.Println(st.SequenceToString(seq))
 	// Output: false
 	// 10293-ahdb-28383-555
-}
-
-func BenchmarkMakeBigSlice(b *testing.B) {
-	b.ReportAllocs()
-	for b.Loop() {
-		sl := make([]int32, 1e8)
-		runtime.KeepAlive(sl)
-	}
 }

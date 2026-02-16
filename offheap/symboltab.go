@@ -145,6 +145,33 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq uint32, found
 	return sequence, false
 }
 
+// InsertString inserts a string value into the symbol table. It is used when the
+// caller knows the string is not already present. If it is already present, the
+// behaviour is undefined. This is a faster version of StringToSequence that
+// avoids the lookup work. It returns the sequence number of the inserted
+// string.
+func (i *SymbolTab) InsertString(val string) uint32 {
+	hash := uint32(runtime_memhash(
+		unsafe.Pointer(unsafe.StringData(val)),
+		0,
+		uintptr(len(val)),
+	))
+
+	// We're going to add to the table, make sure it is big enough
+	i.resize()
+	if i.oldTable.len() != 0 {
+		i.resizeWork()
+	}
+
+	i.count++
+	sequence := uint32(i.count)
+
+	i.copyEntryToTable(i.table, tableEntry{hash: hash, sequence: sequence})
+	i.ib.save(sequence, i.sb.Save(val))
+
+	return sequence
+}
+
 // findInTable find the string val in the hash table. If the string is present, it returns the
 // place in the table where it was found, plus the stringbank offset of the string + 1
 func (i *SymbolTab) findInTable(table table, val string, hashVal uint32) (cursor int, sequence uint32) {
