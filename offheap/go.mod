@@ -3,12 +3,6 @@ module github.com/philpearl/symboltab/offheap
 go 1.25
 
 require (
-	github.com/philpearl/mmap v0.0.1
-	github.com/philpearl/stringbank/offheap v1.0.3
-	github.com/stretchr/testify v1.3.0
-)
-
-require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/philpearl/mmap v0.0.2
+	github.com/philpearl/stringbank/offheap v1.0.6
 )

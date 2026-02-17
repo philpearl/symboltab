@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestBasic(t *testing.T) {
@@ -16,13 +14,17 @@ func TestBasic(t *testing.T) {
 	assertStringToSequence := func(seq uint32, existing bool, val string) {
 		t.Helper()
 		seqa, existinga := st.StringToSequence(val, true)
-		assert.Equal(t, existing, existinga)
-		if existinga {
-			assert.Equal(t, seq, seqa)
+		if existinga != existing {
+			t.Errorf("expected existing=%v, got %v for %q", existing, existinga, val)
+		}
+		if existinga && seqa != seq {
+			t.Errorf("expected seq=%d, got %d for %q", seq, seqa, val)
 		}
 	}
 
-	assert.Zero(t, st.SymbolSize())
+	if st.SymbolSize() != 0 {
+		t.Errorf("expected SymbolSize=0, got %d", st.SymbolSize())
+	}
 
 	assertStringToSequence(1, false, "a1")
 	assertStringToSequence(2, false, "a2")
@@ -30,11 +32,19 @@ func TestBasic(t *testing.T) {
 	assertStringToSequence(2, true, "a2")
 	assertStringToSequence(3, true, "a3")
 
-	assert.Equal(t, 1<<18, st.SymbolSize())
+	if st.SymbolSize() != 1<<18 {
+		t.Errorf("expected SymbolSize=%d, got %d", 1<<18, st.SymbolSize())
+	}
 
-	assert.Equal(t, "a1", st.SequenceToString(1))
-	assert.Equal(t, "a2", st.SequenceToString(2))
-	assert.Equal(t, "a3", st.SequenceToString(3))
+	if got := st.SequenceToString(1); got != "a1" {
+		t.Errorf("expected a1, got %s", got)
+	}
+	if got := st.SequenceToString(2); got != "a2" {
+		t.Errorf("expected a2, got %s", got)
+	}
+	if got := st.SequenceToString(3); got != "a3" {
+		t.Errorf("expected a3, got %s", got)
+	}
 }
 
 func TestInsertString(t *testing.T) {
@@ -60,19 +70,29 @@ func TestGrowth(t *testing.T) {
 
 	for i := range 10_000 {
 		seq, found := st.StringToSequence(strconv.Itoa(i), true)
-		assert.False(t, found)
-		assert.Equal(t, uint32(i+1), seq)
+		if found {
+			t.Errorf("expected not found for %d", i)
+		}
+		if seq != uint32(i+1) {
+			t.Errorf("expected seq=%d, got %d", i+1, seq)
+		}
 	}
 
 	for i := range 10_000 {
 		seq, found := st.StringToSequence(strconv.Itoa(i), true)
-		assert.True(t, found)
-		assert.Equal(t, uint32(i+1), seq)
+		if !found {
+			t.Errorf("expected found for %d", i)
+		}
+		if seq != uint32(i+1) {
+			t.Errorf("expected seq=%d, got %d", i+1, seq)
+		}
 	}
 
 	for i := range 10_000 {
 		str := st.SequenceToString(uint32(i + 1))
-		assert.Equal(t, strconv.Itoa(i), str)
+		if str != strconv.Itoa(i) {
+			t.Errorf("expected %s, got %s", strconv.Itoa(i), str)
+		}
 	}
 }
 
@@ -81,12 +101,20 @@ func TestGrowth2(t *testing.T) {
 
 	for i := range 10_000 {
 		seq, found := st.StringToSequence(strconv.Itoa(i), true)
-		assert.False(t, found)
-		assert.Equal(t, uint32(i+1), seq)
+		if found {
+			t.Errorf("expected not found for %d", i)
+		}
+		if seq != uint32(i+1) {
+			t.Errorf("expected seq=%d, got %d", i+1, seq)
+		}
 
 		seq, found = st.StringToSequence(strconv.Itoa(i), true)
-		assert.True(t, found)
-		assert.Equal(t, uint32(i+1), seq)
+		if !found {
+			t.Errorf("expected found for %d", i)
+		}
+		if seq != uint32(i+1) {
+			t.Errorf("expected seq=%d, got %d", i+1, seq)
+		}
 	}
 }
 
@@ -94,17 +122,29 @@ func TestAddNew(t *testing.T) {
 	st := New(16)
 	// Won't add entry if asked not to
 	seq, existing := st.StringToSequence("hat", false)
-	assert.False(t, existing)
-	assert.Equal(t, uint32(0), seq)
+	if existing {
+		t.Error("expected not existing")
+	}
+	if seq != 0 {
+		t.Errorf("expected seq=0, got %d", seq)
+	}
 
 	seq, existing = st.StringToSequence("hat", true)
-	assert.False(t, existing)
-	assert.Equal(t, uint32(1), seq)
+	if existing {
+		t.Error("expected not existing")
+	}
+	if seq != 1 {
+		t.Errorf("expected seq=1, got %d", seq)
+	}
 
 	// Can find existing entry if not asked to add new
 	seq, existing = st.StringToSequence("hat", false)
-	assert.True(t, existing)
-	assert.Equal(t, uint32(1), seq)
+	if !existing {
+		t.Error("expected existing")
+	}
+	if seq != 1 {
+		t.Errorf("expected seq=1, got %d", seq)
+	}
 }
 
 func TestLowGC(t *testing.T) {
@@ -115,7 +155,9 @@ func TestLowGC(t *testing.T) {
 	runtime.GC()
 	start := time.Now()
 	runtime.GC()
-	assert.True(t, time.Since(start) < time.Millisecond*5)
+	if elapsed := time.Since(start); elapsed >= time.Millisecond*5 {
+		t.Errorf("GC took too long: %v", elapsed)
+	}
 
 	runtime.KeepAlive(st)
 }

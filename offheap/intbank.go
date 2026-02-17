@@ -7,12 +7,12 @@ import (
 const intbanksize = 1 << 12
 
 type intbank struct {
-	slabs [][]int
+	slabs []*[intbanksize]int
 }
 
 func (ib *intbank) close() {
 	for _, s := range ib.slabs {
-		mmap.Free(s)
+		mmap.Free((*s)[:])
 	}
 	ib.slabs = nil
 }
@@ -24,7 +24,7 @@ func (ib *intbank) save(sequence uint32, offset int) {
 
 	for len(ib.slabs) <= slabNo {
 		ns, _ := mmap.Alloc[int](intbanksize)
-		ib.slabs = append(ib.slabs, ns)
+		ib.slabs = append(ib.slabs, (*[intbanksize]int)(ns))
 	}
 
 	ib.slabs[slabNo][slabOffset] = offset
