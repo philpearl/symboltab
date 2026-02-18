@@ -1,4 +1,4 @@
 github.com/philpearl/mmap v0.0.2 h1:C1J71eOiPnwts+F1DWFzD6l61lTWYrKYfa5FtquiCNc=
 github.com/philpearl/mmap v0.0.2/go.mod h1:QrP2HYBITgRn17ew4iLlkxpqwC0+anpv8FgqPAfDWQE=
-github.com/philpearl/stringbank/offheap v1.0.6 h1:5Z/Bm1KtxZAIq+JzfkDS/y70E9lCVXDEPKgcOfWFmgQ=
-github.com/philpearl/stringbank/offheap v1.0.6/go.mod h1:KgyjL+JJbAPrIj9v5Qt2CxuBnt0hsQGmOcC4R3wXbG0=
+github.com/philpearl/stringbank/offheap v1.0.7 h1:M5HSPLP+bWZWol7FoklNPKqJrPCRKL6XcTkhywgrWXI=
+github.com/philpearl/stringbank/offheap v1.0.7/go.mod h1:KgyjL+JJbAPrIj9v5Qt2CxuBnt0hsQGmOcC4R3wXbG0=

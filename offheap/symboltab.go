@@ -6,6 +6,9 @@
 package offheap
 
 import (
+	"encoding/binary"
+	"fmt"
+	"io"
 	"math"
 	"math/bits"
 	"unsafe"
@@ -53,6 +56,70 @@ func (i *SymbolTab) Close() {
 	i.oldTableCursor = 0
 	i.count = 0
 	i.ib.close()
+}
+
+const symbolTabTag = "SYMBOLTAB_V1   "
+
+// Persist writes the current state of the SymbolTab to w.
+//
+// Note the format is a just the current structure of the table, so with almost
+// any change we'll need to change the tag and update the loading code.
+func (i *SymbolTab) Persist(w io.Writer) error {
+	if _, err := w.Write([]byte(symbolTabTag)); err != nil {
+		return fmt.Errorf("writing symboltab tag: %w", err)
+	}
+	i.completeResize()
+
+	if err := binary.Write(w, binary.NativeEndian, int64(i.count)); err != nil {
+		return fmt.Errorf("writing symboltab count: %w", err)
+	}
+
+	if err := i.table.persist(w); err != nil {
+		return fmt.Errorf("persisting symboltab table: %w", err)
+	}
+
+	if err := i.ib.persist(w); err != nil {
+		return fmt.Errorf("persisting symboltab intbank: %w", err)
+	}
+
+	if err := i.sb.Persist(w); err != nil {
+		return fmt.Errorf("persisting symboltab stringbank: %w", err)
+	}
+
+	return nil
+}
+
+// Load reads a SymbolTab from r, and returns a new SymbolTab with the same contents.
+func Load(r io.Reader) (*SymbolTab, error) {
+	header := make([]byte, len(symbolTabTag))
+	if _, err := io.ReadFull(r, header); err != nil {
+		return nil, fmt.Errorf("reading symboltab tag: %w", err)
+	}
+	if string(header) != symbolTabTag {
+		return nil, fmt.Errorf("invalid symboltab tag: got %s, want %s", string(header), symbolTabTag)
+	}
+
+	var i SymbolTab
+	var count int64
+
+	if err := binary.Read(r, binary.NativeEndian, &count); err != nil {
+		return nil, fmt.Errorf("reading symboltab count: %w", err)
+	}
+	i.count = int(count)
+
+	if err := i.table.load(r); err != nil {
+		return nil, fmt.Errorf("loading symboltab table: %w", err)
+	}
+
+	if err := i.ib.load(r); err != nil {
+		return nil, fmt.Errorf("loading symboltab intbank: %w", err)
+	}
+
+	if err := i.sb.Load(r); err != nil {
+		return nil, fmt.Errorf("loading symboltab stringbank: %w", err)
+	}
+
+	return &i, nil
 }
 
 // Len returns the number of unique strings stored
@@ -237,6 +304,22 @@ func (i *SymbolTab) resizeWork() {
 	}
 }
 
+// completeResize finishes off a resize if we're in the middle of one. This is
+// used when persisting to make sure all the data is in the new table, and we
+// don't have to persist the old table at all
+func (i *SymbolTab) completeResize() {
+	if i.oldTable.len() == 0 {
+		return
+	}
+	for _, entry := range i.oldTable.entries[i.oldTableCursor:] {
+		if entry.sequence != 0 {
+			i.copyEntryToTable(i.table, entry)
+		}
+	}
+	i.oldTable.close()
+	i.oldTableCursor = 0
+}
+
 func (i *SymbolTab) resize() {
 	if i.table.entries == nil {
 		// Makes zero value of SymbolTab useful
@@ -289,7 +372,7 @@ func (t *table) init(cap int) {
 	t.entries, _ = mmap.Alloc[tableEntry](cap)
 }
 
-func (t table) len() int {
+func (t *table) len() int {
 	return len(t.entries)
 }
 
@@ -298,4 +381,50 @@ func (t *table) close() {
 		mmap.Free(t.entries)
 		t.entries = nil
 	}
+}
+
+const tableTag = "TABLE_V1   "
+
+// persist writes the current state of the table to w.
+func (t *table) persist(w io.Writer) error {
+	if _, err := w.Write([]byte(tableTag)); err != nil {
+		return fmt.Errorf("writing table tag: %w", err)
+	}
+
+	data := binary.NativeEndian.AppendUint32(nil, uint32(len(t.entries)))
+	if _, err := w.Write(data); err != nil {
+		return fmt.Errorf("writing table entry count: %w", err)
+	}
+
+	tableData := unsafe.Slice((*byte)(unsafe.Pointer(&t.entries[0])), uintptr(len(t.entries))*unsafe.Sizeof(tableEntry{}))
+	if _, err := w.Write(tableData); err != nil {
+		return fmt.Errorf("writing table entries: %w", err)
+	}
+
+	return nil
+}
+
+// load reads the table state from r, and populates t with it. It assumes t is empty.
+func (t *table) load(r io.Reader) error {
+	header := make([]byte, len(tableTag))
+	if _, err := io.ReadFull(r, header); err != nil {
+		return fmt.Errorf("reading table tag: %w", err)
+	}
+	if string(header) != tableTag {
+		return fmt.Errorf("invalid table tag: %s", string(header))
+	}
+
+	countData := make([]byte, 4)
+	if _, err := io.ReadFull(r, countData); err != nil {
+		return fmt.Errorf("reading table entry count: %w", err)
+	}
+	count := binary.NativeEndian.Uint32(countData)
+
+	t.entries, _ = mmap.Alloc[tableEntry](int(count))
+	tableData := unsafe.Slice((*byte)(unsafe.Pointer(&t.entries[0])), uintptr(count)*unsafe.Sizeof(tableEntry{}))
+	if _, err := io.ReadFull(r, tableData); err != nil {
+		return fmt.Errorf("reading table entries: %w", err)
+	}
+
+	return nil
 }

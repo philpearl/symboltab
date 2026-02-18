@@ -1,6 +1,11 @@
 package offheap
 
 import (
+	"encoding/binary"
+	"fmt"
+	"io"
+	"unsafe"
+
 	"github.com/philpearl/mmap"
 )
 
@@ -36,4 +41,53 @@ func (ib *intbank) lookup(sequence uint32) int {
 	slabOffset := int(sequence % intbanksize)
 
 	return ib.slabs[slabNo][slabOffset]
+}
+
+const intbankTag = "INTBANK_V1  "
+
+func (ib *intbank) persist(w io.Writer) error {
+	if _, err := w.Write([]byte(intbankTag)); err != nil {
+		return fmt.Errorf("writing intbank tag: %w", err)
+	}
+
+	data := binary.NativeEndian.AppendUint32(nil, uint32(len(ib.slabs)))
+	if _, err := w.Write(data); err != nil {
+		return fmt.Errorf("writing intbank slab count: %w", err)
+	}
+
+	for _, s := range ib.slabs {
+		data := unsafe.Slice((*byte)(unsafe.Pointer(s)), intbanksize*unsafe.Sizeof(int(0)))
+		if _, err := w.Write(data); err != nil {
+			return fmt.Errorf("writing intbank slab: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (ib *intbank) load(r io.Reader) error {
+	header := make([]byte, len(intbankTag))
+	if _, err := io.ReadFull(r, header); err != nil {
+		return fmt.Errorf("reading intbank tag: %w", err)
+	}
+	if string(header) != intbankTag {
+		return fmt.Errorf("invalid intbank tag: got %s, want %s", string(header), intbankTag)
+	}
+
+	var slabCount uint32
+	if err := binary.Read(r, binary.NativeEndian, &slabCount); err != nil {
+		return fmt.Errorf("reading intbank slab count: %w", err)
+	}
+
+	ib.slabs = make([]*[intbanksize]int, 0, slabCount)
+	for range slabCount {
+		ns, _ := mmap.Alloc[int](intbanksize)
+		slab := (*[intbanksize]int)(ns)
+		data := unsafe.Slice((*byte)(unsafe.Pointer(slab)), intbanksize*unsafe.Sizeof(int(0)))
+		if _, err := io.ReadFull(r, data); err != nil {
+			return fmt.Errorf("reading intbank slab: %w", err)
+		}
+		ib.slabs = append(ib.slabs, slab)
+	}
+	return nil
 }

@@ -2,6 +2,8 @@ package offheap
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"runtime"
 	"strconv"
 	"testing"
@@ -332,4 +334,41 @@ func ExampleSymbolTab() {
 	fmt.Println(st.SequenceToString(seq))
 	// Output: false
 	// 10293-ahdb-28383-555
+}
+
+func TestSymboltabReload(t *testing.T) {
+	st := New(16)
+	defer st.Close()
+
+	const numEntries = 100_000
+
+	for i := range numEntries {
+		st.StringToSequence(strconv.Itoa(i), true)
+	}
+
+	dir := t.TempDir()
+	path := dir + "/symboltab.dat"
+	w, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("failed to open file: %v", err)
+	}
+	if err := st.Persist(w); err != nil {
+		t.Fatalf("failed to persist symboltab: %v", err)
+	}
+	if _, err := w.Seek(0, io.SeekStart); err != nil {
+		t.Fatalf("failed to seek symboltab file: %v", err)
+	}
+
+	st2, err := Load(w)
+	if err != nil {
+		t.Fatalf("failed to load symboltab: %v", err)
+	}
+	defer st2.Close()
+
+	for i := range numEntries {
+		expected := strconv.Itoa(i)
+		if got := st2.SequenceToString(uint32(i + 1)); got != expected {
+			t.Errorf("expected %s, got %s for sequence %d", expected, got, i+1)
+		}
+	}
 }
