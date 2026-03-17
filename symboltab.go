@@ -7,10 +7,9 @@ package symboltab
 
 import (
 	"math/bits"
-	"reflect"
-	"unsafe"
 
 	"github.com/philpearl/stringbank"
+	"github.com/zeebo/xxh3"
 )
 
 // Our space costs are 8 bytes per entry. With a load factor of 0.5 (written as 2 here for reasons) that's
@@ -68,13 +67,6 @@ func (i *SymbolTab) SequenceToString(seq uint32) string {
 	return i.sb.Get(offset)
 }
 
-// We use the runtime's map hash function without the overhead of using
-// hash/maphash
-//
-//go:linkname runtime_memhash runtime.memhash
-//go:noescape
-func runtime_memhash(p unsafe.Pointer, seed, s uintptr) uintptr
-
 // StringToSequence looks up the string val and returns its sequence number seq. If val does
 // not currently exist in the symbol table, it will add it if addNew is true. found indicates
 // whether val was already present in the SymbolTab
@@ -82,11 +74,7 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq uint32, found
 	// we use a hashtable where the keys are stringbank offsets, but comparisons are done on
 	// strings. There is no value to store
 
-	hash := uint32(runtime_memhash(
-		unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&val)).Data),
-		0,
-		uintptr(len(val)),
-	))
+	hash := uint32(xxh3.HashString(val))
 
 	if addNew {
 		// We're going to add to the table, make sure it is big enough
@@ -138,11 +126,7 @@ func (i *SymbolTab) StringToSequence(val string, addNew bool) (seq uint32, found
 // avoids the lookup work. It returns the sequence number of the inserted
 // string.
 func (i *SymbolTab) InsertString(val string) uint32 {
-	hash := uint32(runtime_memhash(
-		unsafe.Pointer(unsafe.StringData(val)),
-		0,
-		uintptr(len(val)),
-	))
+	hash := uint32(xxh3.HashString(val))
 
 	// We're going to add to the table, make sure it is big enough
 	i.resize()
