@@ -59,7 +59,7 @@ func (i *SymbolTab) Close() {
 	i.ib.close()
 }
 
-const symbolTabTag = "SYMBOLTAB_V1   "
+const symbolTabTag = "SYMBOLTAB_V001"
 
 // Persist writes the current state of the SymbolTab to w.
 //
