@@ -139,6 +139,12 @@ func (i *SymbolTab) SymbolSize() int {
 	return i.sb.Size()
 }
 
+// MemoryUse returns the total memory used by the symbol table, including the
+// string storage and the tables.
+func (i *SymbolTab) MemoryUse() int {
+	return i.sb.Size() + i.table.memoryUse() + i.oldTable.memoryUse() + i.ib.memoryUse()
+}
+
 // SequenceToString looks up a string by its sequence number. Obtain the sequence number
 // for a string with StringToSequence
 func (i *SymbolTab) SequenceToString(seq uint32) string {
@@ -360,6 +366,13 @@ func (t *table) init(cap int) {
 
 func (t *table) len() int {
 	return len(t.entries)
+}
+
+func (t *table) memoryUse() int {
+	if t == nil {
+		return 0
+	}
+	return len(t.entries) * int(unsafe.Sizeof(tableEntry{}))
 }
 
 func (t *table) close() {

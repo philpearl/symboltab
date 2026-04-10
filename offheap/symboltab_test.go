@@ -48,6 +48,10 @@ func TestBasic(t *testing.T) {
 	if got := st.SequenceToString(3); got != "a3" {
 		t.Errorf("expected a3, got %s", got)
 	}
+
+	if mu := st.MemoryUse(); mu != 295168 {
+		t.Errorf("expected MemoryUsage=295168, got %d", mu)
+	}
 }
 
 func TestInsertString(t *testing.T) {
@@ -66,6 +70,10 @@ func TestInsertString(t *testing.T) {
 		if str != strconv.Itoa(i) {
 			t.Errorf("expected string %s, got %s", strconv.Itoa(i), str)
 		}
+	}
+
+	if mu := st.MemoryUse(); mu != 622592 {
+		t.Errorf("expected MemoryUsage=622592, got %d", mu)
 	}
 }
 

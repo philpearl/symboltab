@@ -22,6 +22,10 @@ func (ib *intbank) close() {
 	ib.slabs = nil
 }
 
+func (ib *intbank) memoryUse() int {
+	return len(ib.slabs) * intbanksize * int(unsafe.Sizeof(int(0)))
+}
+
 func (ib *intbank) save(sequence uint32, offset int) {
 	sequence-- // externally sequence starts at 1
 	slabNo := int(sequence / intbanksize)
