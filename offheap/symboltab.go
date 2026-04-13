@@ -419,7 +419,11 @@ func (t *table) load(r io.Reader) error {
 	}
 	count := binary.NativeEndian.Uint32(countData)
 
-	t.entries, _ = mmap.Alloc[tableEntry](int(count))
+	var err error
+	t.entries, err = mmap.Alloc[tableEntry](int(count))
+	if err != nil {
+		return fmt.Errorf("allocating %d table entries: %w", count, err)
+	}
 	tableData := unsafe.Slice((*byte)(unsafe.Pointer(&t.entries[0])), uintptr(count)*unsafe.Sizeof(tableEntry{}))
 	if _, err := io.ReadFull(r, tableData); err != nil {
 		return fmt.Errorf("reading table entries: %w", err)
