@@ -361,7 +361,11 @@ type tableEntry struct {
 }
 
 func (t *table) init(cap int) {
-	t.entries, _ = mmap.Alloc[tableEntry](cap)
+	var err error
+	t.entries, err = mmap.Alloc[tableEntry](cap)
+	if err != nil {
+		panic(fmt.Sprintf("failed to allocate capacity %d: %s", cap, err))
+	}
 }
 
 func (t *table) len() int {
