@@ -386,7 +386,10 @@ func (t *table) close() {
 	}
 }
 
-const tableTag = "TABLE_V1   "
+const (
+	tableTagOld = "TABLE_V1   "
+	tableTag    = "TABLE_V0002"
+)
 
 // persist writes the current state of the table to w.
 func (t *table) persist(w io.Writer) error {
@@ -394,7 +397,13 @@ func (t *table) persist(w io.Writer) error {
 		return fmt.Errorf("writing table tag: %w", err)
 	}
 
-	data := binary.NativeEndian.AppendUint32(nil, uint32(len(t.entries)))
+	// size is always a power of two, so we write the exponent rather than the
+	// size itself. This is because the maximum size we support is 2^32, which
+	// doesn't fit in a uint32!
+	size := len(t.entries)
+	exponent := uint32(bits.Len(uint(size - 1)))
+
+	data := binary.NativeEndian.AppendUint32(nil, exponent)
 	if _, err := w.Write(data); err != nil {
 		return fmt.Errorf("writing table entry count: %w", err)
 	}
@@ -413,18 +422,29 @@ func (t *table) load(r io.Reader) error {
 	if _, err := io.ReadFull(r, header); err != nil {
 		return fmt.Errorf("reading table tag: %w", err)
 	}
-	if string(header) != tableTag {
-		return fmt.Errorf("invalid table tag: %s", string(header))
+	var countIsPowerOfTwo bool
+	switch string(header) {
+	case tableTagOld:
+	case tableTag:
+		countIsPowerOfTwo = true
+	default:
+		return fmt.Errorf("unsupported table version: %s", string(header))
 	}
 
 	countData := make([]byte, 4)
 	if _, err := io.ReadFull(r, countData); err != nil {
 		return fmt.Errorf("reading table entry count: %w", err)
 	}
-	count := binary.NativeEndian.Uint32(countData)
+	count := int(binary.NativeEndian.Uint32(countData))
+	if countIsPowerOfTwo {
+		count = 1 << count
+	} else if count == 0 {
+		// This is to cope with a bug in the old version!
+		count = 1 << 32
+	}
 
 	var err error
-	t.entries, err = mmap.Alloc[tableEntry](int(count))
+	t.entries, err = mmap.Alloc[tableEntry](count)
 	if err != nil {
 		return fmt.Errorf("allocating %d table entries: %w", count, err)
 	}

@@ -3,6 +3,7 @@ package offheap
 import (
 	"fmt"
 	"io"
+	"math/bits"
 	"os"
 	"runtime"
 	"strconv"
@@ -377,6 +378,15 @@ func TestSymboltabReload(t *testing.T) {
 		expected := strconv.Itoa(i)
 		if got := st2.SequenceToString(uint32(i + 1)); got != expected {
 			t.Errorf("expected %s, got %s for sequence %d", expected, got, i+1)
+		}
+	}
+}
+
+func TestBits(t *testing.T) {
+	for _, i := range []int{16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216, 33554432, 67108864, 134217728, 268435456, 536870912, 1073741824, 2147483648, 4294967296} {
+		v := bits.Len(uint(i - 1))
+		if 1<<v != i {
+			t.Errorf("expected 1<<%d to equal %d, got %d", v, i, 1<<v)
 		}
 	}
 }
